@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>EC/HPT Table Analysis</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #2d3748;
+            line-height: 1.8;
+            padding: 40px;
+            direction: rtl;
+            text-align: right;
+            max-width: 900px;
+            margin: auto;
+        }
+        h1 { color: #1a365d; border-bottom: 3px solid #3182ce; padding-bottom: 8px; text-align: center; }
+        h2 { color: #2b6cb0; border-right: 4px solid #3182ce; padding-right: 10px; margin-top: 25px; }
+        blockquote { background-color: #ebf8ff; border-right: 4px solid #3182ce; padding: 12px; color: #2b6cb0; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #cbd5e0; padding: 10px; text-align: right; }
+        th { background-color: #2b6cb0; color: white; }
+        tr:nth-child(even) { background-color: #f7fafc; }
+    </style>
+</head>
+<body>
+    <h1>تحليل سجلات EC و HPT و PID و FID</h1>
+<h2>مقدمة عن المنهجية</h2>
+<p>لتحديد <strong>الطبقات الناقلة</strong> و<strong>الطبقات الحابسة</strong>، نعتمد على المؤشرات التالية:</p>
+<table>
+<thead>
+<tr>
+<th>المؤشر</th>
+<th>الطبقة الناقلة</th>
+<th>الطبقة الحابسة</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EC</strong> (التوصيل الكهربائي)</td>
+<td>مرتفع (مسامية/تشبّع بالماء)</td>
+<td>منخفض</td>
+</tr>
+<tr>
+<td><strong>PID</strong> (تداخل الإنتاج)</td>
+<td>قمم واضحة (تدفق)</td>
+<td>لا استجابة</td>
+</tr>
+<tr>
+<td><strong>FID</strong> (مقياس التدفق)</td>
+<td>قمم (حركة موائع)</td>
+<td>لا استجابة</td>
+</tr>
+<tr>
+<td><strong>HPT</strong> (ضغط التكوين)</td>
+<td>استجابة/انحراف عن التدرج</td>
+<td>خط تدرجي منتظم</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>أولًا: الطبقات الحابسة (Barrier Layers)</h2>
+<p>بناءً على انخفاض الـ EC وغياب استجابة PID/FID:</p>
+<table>
+<thead>
+<tr>
+<th>العمق (م)</th>
+<th>EC</th>
+<th>PID/FID</th>
+<th>التفسير</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>0 – 6</strong></td>
+<td>منخفض جدًا (~0–50 mV)</td>
+<td>لا استجابة</td>
+<td>طبقة حابسة علوية</td>
+</tr>
+<tr>
+<td><strong>20 – 22</strong></td>
+<td>منخفض</td>
+<td>ضعيفة/غائبة</td>
+<td>حاجز متوسط</td>
+</tr>
+<tr>
+<td><strong>22 – 28</strong></td>
+<td>منخفض جدًا</td>
+<td>لا استجابة</td>
+<td>طبقة حابسة سميكة</td>
+</tr>
+<tr>
+<td><strong>30 – 32</strong></td>
+<td>منخفض</td>
+<td>لا استجابة</td>
+<td>طبقة حابسة سفلية</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>ثانيًا: الطبقات الناقلة (Transmissive Layers)</h2>
+<h3>🔵 المنطقة الناقلة الرئيسية الأولى: (~8 – 14 م)</h3>
+<ul>
+<li><strong>EC:</strong> مرتفع جدًا (300–450 mV) → مسامية عالية وتشبّع مائي</li>
+<li><strong>PID:</strong> قمم قوية جدًا → تدفق نشط</li>
+<li><strong>HPT:</strong> استجابة ضغط واضحة → نفاذية مؤكدة</li>
+<li><strong>التصنيف:</strong> ⭐ أفضل منطقة ناقلة (Sweet Spot)</li>
+</ul>
+<h3>🟢 المنطقة الناقلة الثانية: (~16 – 20 م)</h3>
+<ul>
+<li><strong>EC:</strong> متوسط إلى مرتفع</li>
+<li><strong>PID:</strong> قمم معتدلة</li>
+<li><strong>FID:</strong> قمم واضحة → حركة موائع مؤكدة</li>
+<li><strong>HPT:</strong> استجابة ضغط</li>
+<li><strong>التصنيف:</strong> منطقة ناقلة ثانوية</li>
+</ul>
+<h3>🟡 المنطقة الناقلة الثالثة: (~28 – 30 م)</h3>
+<ul>
+<li><strong>EC:</strong> ارتفاع طفيف</li>
+<li><strong>PID/FID:</strong> استجابة ضعيفة</li>
+<li><strong>التصنيف:</strong> نفاذية محدودة</li>
+</ul>
+<hr />
+<h2>الملخص التخطيطي</h2>
+<p><code>العمق (م)    | التصنيف
+-------------|----------------------------------
+  0 – 6      | ░░░░░░░░░░░░░░░░░░░░░░  حابسة
+  6 – 8      | ▓▓▓▓░░░░░░░░░░░░░░░░░░  انتقالي
+  8 – 14     | ████████████████████████  ناقلة (رئيسية) ⭐
+ 14 – 16     | ░░░░▓▓▓░░░░░░░░░░░░░░░░  انتقالي/حابس
+ 16 – 20     | ▓▓▓▓▓▓▓▓▓▓░░░░░░░░░░░░  ناقلة (ثانوية)
+ 20 – 28     | ░░░░░░░░░░░░░░░░░░░░░░  حابسة (سميكة)
+ 28 – 30     | ▓▓▓▓░░░░░░░░░░░░░░░░░░  ناقلة (ضعيفة)
+ 30 – 32     | ░░░░░░░░░░░░░░░░░░░░░░  حابسة</code></p>
+<hr />
+<h2>الاستنتاجات</h2>
+<ol>
+<li><strong>أفضل منطقة ناقلة</strong> تقع على عمق <strong>8–14 م</strong> (أعلى EC + أقوى PID + استجابة HPT).</li>
+<li><strong>الطبقة الحابسة السميكة</strong> (20–28 م) تعمل كحاجز هيدروليكي يفصل المناطق الناقلة العلوية عن السفلية.</li>
+<li>يتطابق ارتفاع الـ EC مع قمم PID/FID في تأكيد <strong>النفاذية المرتبطة بالمسامية</strong>.</li>
+</ol>
+<blockquote>
+<p><strong>ملاحظة:</strong> يُنصح بمعايرة هذه النتائج مع بيانات <strong>الكسح الجانبي (Lateral Log)</strong> و<strong>الليثولوجيا</strong> لتحديد نوع المسامية (متصلة أم منفصلة).</p>
+</blockquote>
+</body>
+</html>
