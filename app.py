@@ -333,8 +333,10 @@ if mode == "📊 تحليل التقارير والسجلات الذكية":
                         "التقرير مطابق للائحة التنفيذية لحماية المياه الجوفية الصادرة عن وزارة البيئة والمياه والزراعة (MEWA) وضوابط المركز الوطني للرقابة على الالتزام البيئي (NCEC).")
 
                 # Report Download Action
+                # 1. Generate PDF using the new comprehensive function with Amiri font support
                 pdf_bytes = generate_comprehensive_pdf(uploaded_file.name)
 
+                # 2. Bind the updated bytes to the download button
                 st.download_button(
                     label="📥 تحميل التقرير الهيدروجيولوجي الشامل (PDF)",
                     data=pdf_bytes,
