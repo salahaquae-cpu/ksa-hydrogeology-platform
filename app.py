@@ -21,7 +21,48 @@ st.set_page_config(
     page_icon="🌍",
     layout="wide"
 )
+# -----------------------------------------------------------------------------
+# Global Right-to-Left (RTL) CSS Injection for Full Arabic UI
+# -----------------------------------------------------------------------------
+st.markdown(
+    """
+    <style>
+    /* Force main app container and text to Right-to-Left */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        direction: rtl;
+        text-align: right;
+    }
 
+    /* Move Sidebar to the Right Side */
+    [data-testid="stSidebar"] {
+        position: fixed;
+        right: 0 !important;
+        left: auto !important;
+        direction: rtl;
+        text-align: right;
+    }
+
+    /* Adjust main content padding to make space for the right sidebar */
+    [data-testid="stAppViewBlockContainer"] {
+        direction: rtl;
+        text-align: right;
+    }
+
+    /* Right align all headings, paragraphs, and radio buttons */
+    h1, h2, h3, h4, h5, h6, p, label, .stMarkdown, .stRadio {
+        direction: rtl;
+        text-align: right !important;
+    }
+
+    /* Fix radio button layout alignment */
+    div[role="radiogroup"] {
+        direction: rtl;
+        text-align: right;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 # -----------------------------------------------------------------------------
 # 2. Font Registration & Arabic Text Reshaper Helper
 # -----------------------------------------------------------------------------
