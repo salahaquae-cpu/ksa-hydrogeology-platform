@@ -1,10 +1,15 @@
 import io
 import os
 import time
-import requests
+import pandas as pd
+import numpy as np
 import streamlit as st
 import arabic_reshaper
 from bidi.algorithm import get_display
+
+# GIS Imports
+import folium
+from streamlit_folium import st_folium
 
 # ReportLab Imports for Technical PDF Generation
 from reportlab.lib import colors
@@ -24,18 +29,17 @@ st.set_page_config(
 )
 
 # -----------------------------------------------------------------------------
-# 2. Global RTL CSS & Visual Theme Styling (Sidebar Fix Applied)
+# 2. Global RTL CSS & Visual Theme Styling
 # -----------------------------------------------------------------------------
 st.markdown(
     """
     <style>
-    /* Full Right-to-Left Setup */
+    /* Global RTL Setup */
     html, body, [data-testid="stAppViewContainer"] {
         direction: rtl;
         text-align: right;
     }
 
-    /* Ensure Sidebar text & radio buttons remain fully visible in RTL */
     [data-testid="stSidebar"] {
         direction: rtl;
         text-align: right;
@@ -59,7 +63,7 @@ st.markdown(
         text-align: right !important;
     }
 
-    /* Primary Action Button Customization */
+    /* Custom Buttons */
     .stButton>button {
         width: 100%;
         background-color: #0d6efd;
@@ -75,7 +79,7 @@ st.markdown(
         color: white;
     }
 
-    /* Metric Visual Cards */
+    /* Metric Cards */
     .metric-box {
         background-color: #ffffff;
         border: 1px solid #e0e0e0;
@@ -129,7 +133,6 @@ else:
 
 
 def fix_arabic(text: str) -> str:
-    """Reshapes Arabic text for right-to-left PDF generation."""
     if not text:
         return ""
     reshaped_text = arabic_reshaper.reshape(text)
@@ -140,7 +143,7 @@ HUMAIN_API_KEY = st.secrets.get("HUMAIN_API_KEY", "")
 
 
 # -----------------------------------------------------------------------------
-# 4. Comprehensive Technical PDF Generator Function
+# 4. Technical PDF Generator Function
 # -----------------------------------------------------------------------------
 def generate_comprehensive_pdf(filename_ref: str) -> bytes:
     buffer = io.BytesIO()
@@ -175,7 +178,6 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
 
     story = []
 
-    # Header Meta Information
     story.append(
         Paragraph(fix_arabic("المملكة العربية السعودية - منصة الاستشارات الهيدروجيولوجية والبيئية"), body_style))
     story.append(Paragraph(
@@ -183,7 +185,6 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
         body_style))
     story.append(Spacer(1, 8))
 
-    # Title
     story.append(
         Paragraph(fix_arabic("تقرير تقييم المخاطر الهيدروجيولوجية واختبارات النفاذية الميدانية (MiHPT)"), title_style))
     story.append(Spacer(1, 4))
@@ -191,7 +192,6 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
     story.append(Spacer(1, 8))
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#0d6efd'), spaceAfter=12))
 
-    # Section 1: Executive Summary
     story.append(Paragraph(fix_arabic("1. الملخص التنفيذي وسياق الدراسة"), h1_style))
     exec_text = (
         "يقدم هذا التقرير تقييماً شاملاً للخصائص الهيدروجيولوجية بناءً على قراءات المسبار الحقلي (MiHPT). "
@@ -200,10 +200,8 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
     )
     story.append(Paragraph(fix_arabic(exec_text), body_style))
 
-    # Section 2: Hydrogeological Measurements Table (Re-ordered RTL columns)
     story.append(Paragraph(fix_arabic("2. نتائج التحليل الفني وقياسات التوصيل الهيدروليكي"), h1_style))
 
-    # Columns ordered Right-to-Left: [حالة النطاق, الوصف اللثولوجي, الضغط, التوصيل, العمق]
     raw_table = [
         ["حالة النطاق والخطورة", "الوصف اللثولوجي للطبقة", "الضغط الهيدروليكي (kPa)", "التوصيل الهيدروليكي (m/day)",
          "عمق الطبقة (م)"],
@@ -237,7 +235,6 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
     story.append(t)
     story.append(Spacer(1, 10))
 
-    # Section 3: Compliance
     story.append(Paragraph(fix_arabic("3. تقييم الامتثال البيئي والاشتراطات التنظيمية"), h1_style))
     compliance_text = (
         "استناداً إلى معايير NCEC و MEWA، يظهر الموقع تركيزات ملوحة وتوصيلية كهربائية مستقرة في النطاق العميق، "
@@ -245,7 +242,6 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
     )
     story.append(Paragraph(fix_arabic(compliance_text), body_style))
 
-    # Section 4: Recommendations
     story.append(Paragraph(fix_arabic("4. التوصيات الهندسية وخطة الإصحاح الميداني"), h1_style))
     recs = [
         "• تركيب آبار مراقبة دائمة (Monitoring Wells) على عمق 6.0 أمتار لمتابعة اتجاه جريان المياه الجوفية.",
@@ -261,12 +257,11 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
 
 
 # -----------------------------------------------------------------------------
-# 5. Streamlit User Interface Layout
+# 5. Streamlit Navigation & Sidebar UI
 # -----------------------------------------------------------------------------
 st.title("🌍 البوابة الذكية للاستشارات الهيدروجيولوجية والبيئية")
 st.caption("منصة متكاملة لمعالجة السجلات الحقلية، التحليل المكاني (GIS)، وتقييم المخاطر البيئية بالمملكة")
 
-# Sidebar - Full Navigation Restored
 st.sidebar.header("⚙️ إعدادات المنصة")
 mode = st.sidebar.radio(
     "اختر وضع العمل:",
@@ -278,7 +273,9 @@ mode = st.sidebar.radio(
     ]
 )
 
-# Mode 1: Report & Log Analysis
+# -----------------------------------------------------------------------------
+# MODE 1: Report & Log Analysis
+# -----------------------------------------------------------------------------
 if mode == "📊 تحليل التقارير والسجلات الذكية":
     st.header("📄 رفع وتحليل السجلات الحقلية (PDF / Log)")
 
@@ -292,7 +289,6 @@ if mode == "📊 تحليل التقارير والسجلات الذكية":
 
         if st.button("⚡ تشغيل التحليل الذكي عبر نموذج HUMAIN M3"):
             with st.spinner("جاري استخلاص البيانات، التحليل الهيدروجيولوجي، وبناء التقرير..."):
-                # Visual Metric Display Cards
                 m1, m2, m3 = st.columns(3)
                 with m1:
                     st.markdown(
@@ -324,7 +320,6 @@ if mode == "📊 تحليل التقارير والسجلات الذكية":
 
                 st.subheader("📋 نتائج التحليل التنفيذي الشامل")
 
-                # Main Tabs
                 tab1, tab2, tab3 = st.tabs([
                     "📝 الملخص والتوصيات التنفيذية",
                     "📊 جدول قياسات النفاذية واللثولوجيا",
@@ -356,7 +351,6 @@ if mode == "📊 تحليل التقارير والسجلات الذكية":
                     st.info(
                         "التقرير مطابق للائحة التنفيذية لحماية المياه الجوفية الصادرة عن وزارة البيئة والمياه والزراعة (MEWA) وضوابط المركز الوطني للرقابة على الالتزام البيئي (NCEC).")
 
-                # Dynamic PDF Generation & Download
                 current_time = int(time.time())
                 pdf_bytes = generate_comprehensive_pdf(uploaded_file.name)
 
@@ -368,17 +362,95 @@ if mode == "📊 تحليل التقارير والسجلات الذكية":
                     key=f"dl_btn_{current_time}"
                 )
 
-# Mode 2: GIS Map Placeholder
+# -----------------------------------------------------------------------------
+# MODE 2: Interactive GIS Map Component
+# -----------------------------------------------------------------------------
 elif mode == "🗺️ خريطة نظم المعلومات الجغرافية (GIS)":
-    st.header("🗺️ الربط المكانى ونظم المعلومات الجغرافية (GIS)")
-    st.info("عرض مواقع الآبار والسجلات الحقلية على الخريطة التفاعلية للمملكة.")
+    st.header("🗺️ الربط المكاني ونظم المعلومات الجغرافية (GIS)")
+    st.caption("تتبع آبار المراقبة والسجلات الحقلية عبر مواقع المملكة العربية السعودية")
 
-# Mode 3: Dashboard Placeholder
+    # Sample Borehole GIS Locations in KSA
+    well_data = pd.DataFrame([
+        {"id": "BH-01 (الرياض)", "lat": 24.7136, "lon": 46.6753, "k_val": "4.5 m/day", "status": "منطقة تنبيه",
+         "color": "red"},
+        {"id": "BH-02 (الدمام)", "lat": 26.4207, "lon": 50.0888, "k_val": "1.2 m/day", "status": "آمن",
+         "color": "green"},
+        {"id": "BH-03 (جدة)", "lat": 21.5433, "lon": 39.1728, "k_val": "0.05 m/day", "status": "احتجاز طيني",
+         "color": "orange"},
+        {"id": "BH-04 (الجبيل)", "lat": 27.0049, "lon": 49.6593, "k_val": "3.8 m/day", "status": "متابعة دورية",
+         "color": "blue"}
+    ])
+
+    # Filter Controls
+    selected_status = st.multiselect(
+        "تصفية حسب حالة البئر البيئية:",
+        options=well_data["status"].unique(),
+        default=well_data["status"].unique()
+    )
+
+    filtered_wells = well_data[well_data["status"].isin(selected_status)]
+
+    # Initialize Folium Map centered on Saudi Arabia
+    m = folium.Map(location=[24.0, 45.0], zoom_start=6, tiles="OpenStreetMap")
+
+    for _, row in filtered_wells.iterrows():
+        folium.Marker(
+            location=[row["lat"], row["lon"]],
+            popup=f"<b>{row['id']}</b><br>النفاذية: {row['k_val']}<br>الحالة: {row['status']}",
+            tooltip=row["id"],
+            icon=folium.Icon(color=row["color"], icon="info-sign")
+        ).add_to(m)
+
+    st_folium(m, width="100%", height=500)
+
+# -----------------------------------------------------------------------------
+# MODE 3: Multi-Site Comparative Dashboard
+# -----------------------------------------------------------------------------
 elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
-    st.header("📈 لوحة المقارنة والتحليل الإحصائي للسجلات")
-    st.info("مقارنة مستويات النفاذية والتوصيل الهيدروليكي عبر مواقع متعددة.")
+    st.header("📈 لوحة المقارنة والتحليل الإحصائي للسجلات الحقلية")
 
-# Mode 4: Legislative Hub Placeholder
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("مقارنة معدلات التوصيل الهيدروليكي (m/day)")
+        chart_data = pd.DataFrame({
+            "الموقع": ["BH-01 الرياض", "BH-02 الدمام", "BH-03 جدة", "BH-04 الجبيل"],
+            "التوصيل الهيدروليكي": [4.5, 1.2, 0.05, 3.8]
+        })
+        st.bar_chart(chart_data.set_index("الموقع"))
+
+    with col2:
+        st.subheader("توزيع ضغط النفاذية حسب العمق (kPa)")
+        depth_data = pd.DataFrame({
+            "العمق (أمتار)": [1, 2, 3, 4, 5, 6, 7, 8],
+            "ضغط المسبار (kPa)": [120, 150, 480, 620, 510, 230, 210, 205]
+        })
+        st.line_chart(depth_data.set_index("العمق (أمتار)"))
+
+# -----------------------------------------------------------------------------
+# MODE 4: Legislative & Regulatory Knowledge Hub
+# -----------------------------------------------------------------------------
 elif mode == "📚 مكتبة المعرفة التشريعية (Hub)":
     st.header("📚 مكتبة الأنظمة واللوائح البيئية (MEWA / NCEC)")
-    st.info("استعراض الاشتراطات التنفيذية والحدود المسموح بها للملوثات الجوفية.")
+
+    st.subheader("🔍 معايير جودة المياه الجوفية والحدود المسموح بها")
+
+    search_term = st.text_input("ابحث عن عنصر أو ملوث بيئي (مثال: ملوحة, VOCs, نترات):")
+
+    reg_data = [
+        {"العنصر": "المركبات العضوية المتطايرة (VOCs)", "الحد المسموح (MEWA)": "0.005 mg/L", "الجهة التنظيمية": "NCEC",
+         "الإجراء الموصى به": "معالجة فورية بالسبر"},
+        {"العنصر": "الأملاح الذائبة الكلية (TDS)", "الحد المسموح (MEWA)": "1000 mg/L", "الجهة التنظيمية": "MEWA",
+         "الإجراء الموصى به": "ترشيح اسموزي عكسي"},
+        {"العنصر": "النترات (NO3)", "الحد المسموح (MEWA)": "45 mg/L", "الجهة التنظيمية": "MEWA / NCEC",
+         "الإجراء الموصى به": "مراقبة دورية كل 3 أشهر"},
+        {"العنصر": "الرصاص والمعادن الثقيلة", "الحد المسموح (MEWA)": "0.01 mg/L", "الجهة التنظيمية": "NCEC",
+         "الإجراء الموصى به": "عزل وتجريف البؤرة"}
+    ]
+
+    df_reg = pd.DataFrame(reg_data)
+
+    if search_term:
+        df_reg = df_reg[df_reg["العنصر"].str.contains(search_term, case=False)]
+
+    st.dataframe(df_reg, use_container_width=True)
