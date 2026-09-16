@@ -367,11 +367,8 @@ try:
 except Exception:
     default_api_key = "sk-hn-salahaquae-830ae996-7013"
 
-humain_api_key = st.sidebar.text_input(
-    "مفتاح API الخاص بـ HUMAIN",
-    value=default_api_key,
-    type="password"
-)
+humain_api_key = st.secrets.get("HUMAIN_API_KEY", "")
+
 
 app_mode = st.sidebar.radio(
     "اختر وضع العمل في المنصة",
