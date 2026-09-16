@@ -169,8 +169,8 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
 
     body_style = ParagraphStyle(
         'Body_RTL', parent=styles['Normal'],
-        fontName=ARABIC_FONT, fontSize=9.5, leading=14,
-        textColor=colors.HexColor('#212529'), alignment=2, spaceAfter=6
+        fontName=ARABIC_FONT, fontSize=9.5, leading=15,
+        textColor=colors.HexColor('#212529'), alignment=2, spaceAfter=8
     )
 
     story = []
@@ -185,7 +185,7 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
 
     # Title
     story.append(
-        Paragraph(fix_arabic("تقرير تقييم المخاطر الهيدروجيولوجية وااختبارات النفاذية الميدانية (MiHPT)"), title_style))
+        Paragraph(fix_arabic("تقرير تقييم المخاطر الهيدروجيولوجية واختبارات النفاذية الميدانية (MiHPT)"), title_style))
     story.append(Spacer(1, 4))
     story.append(Paragraph(fix_arabic(f"معرف الملف المرجعي: {filename_ref}"), body_style))
     story.append(Spacer(1, 8))
@@ -193,22 +193,23 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
 
     # Section 1: Executive Summary
     story.append(Paragraph(fix_arabic("1. الملخص التنفيذي وسياق الدراسة"), h1_style))
-    exec_summary_text = (
+    exec_text = (
         "يقدم هذا التقرير تقييماً شاملاً للخصائص الهيدروجيولوجية بناءً على قراءات المسبار الحقلي (MiHPT). "
         "تمت المعالجة بواسطة نموذج الذكاء الاصطناعي M3 لتحديد معدلات التوصيل الهيدروليكي والنطاقات الحاملة "
         "للمياه، وتحديد مستويات النفاذية والخطورة البيئية وفقاً للأنظمة البيئية المعتمدة في المملكة."
     )
-    story.append(Paragraph(fix_arabic(exec_summary_text), body_style))
+    story.append(Paragraph(fix_arabic(exec_text), body_style))
 
-    # Section 2: Hydrogeological Measurements Table
+    # Section 2: Hydrogeological Measurements Table (Re-ordered RTL columns)
     story.append(Paragraph(fix_arabic("2. نتائج التحليل الفني وقياسات التوصيل الهيدروليكي"), h1_style))
 
+    # Columns ordered Right-to-Left: [حالة النطاق, الوصف اللثولوجي, الضغط, التوصيل, العمق]
     raw_table = [
-        ["عمق الطبقة (م)", "التوصيل الهيدروليكي (m/day)", "الضغط الهيدروليكي (kPa)", "الوصف اللثولوجي للطبقة",
-         "حالة النطاق والخطورة"],
-        ["0.0 - 2.5", "4.5", "120 - 180", "سلت رملي مرتفع النفاذية", "نطاق انتقال (Transmissive Zone)"],
-        ["2.5 - 5.8", "0.02", "450 - 680", "سلت طيني منخفض النفاذية", "نطاق احتجاز / تجمع (LNAPL Check)"],
-        ["5.8 - 9.0", "2.1", "210 - 290", "رمال متوسطة الحبيبات", "طور ذائب (Dissolved Phase)"]
+        ["حالة النطاق والخطورة", "الوصف اللثولوجي للطبقة", "الضغط الهيدروليكي (kPa)", "التوصيل الهيدروليكي (m/day)",
+         "عمق الطبقة (م)"],
+        ["نطاق انتقال (Transmissive Zone)", "سلت رملي مرتفع النفاذية", "120 - 180", "4.5", "0.0 - 2.5"],
+        ["نطاق احتجاز (LNAPL Check)", "سلت طيني منخفض النفاذية", "450 - 680", "0.02", "2.5 - 5.8"],
+        ["طور ذائب (Dissolved Phase)", "رمال متوسطة الحبيبات", "210 - 290", "2.1", "5.8 - 9.0"]
     ]
 
     processed_table = []
@@ -223,28 +224,28 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
             processed_row.append(Paragraph(fix_arabic(cell), p_style))
         processed_table.append(processed_row)
 
-    t = Table(processed_table, colWidths=[80, 110, 110, 120, 120])
+    t = Table(processed_table, colWidths=[130, 130, 100, 100, 80])
     t.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0f2c59')),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#DEE2E6')),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8F9FA')]),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     story.append(t)
+    story.append(Spacer(1, 10))
 
-    # Section 3: Environmental Compliance
+    # Section 3: Compliance
     story.append(Paragraph(fix_arabic("3. تقييم الامتثال البيئي والاشتراطات التنظيمية"), h1_style))
     compliance_text = (
         "استناداً إلى معايير NCEC و MEWA، يظهر الموقع تركيزات ملوحة وتوصيلية كهربائية مستقرة في النطاق العميق، "
-        "بينما تظهر الطبقة السطحية (2.5 - 5.8 م) احتجازاً للملوثات العضوية المتطايرة (VOCs) مما يستدعي "
-        "اتخاذ تدابير الوقاية الحقلية المبكرة."
+        "بينما تظهر الطبقة السطحية (2.5 - 5.8 م) احتجازاً للملوثات العضوية المتطايرة (VOCs) مما يستدعي اتخاذ تدابير الوقاية الحقلية المبكرة."
     )
     story.append(Paragraph(fix_arabic(compliance_text), body_style))
 
-    # Section 4: Corrective Actions & Engineering Recommendations
+    # Section 4: Recommendations
     story.append(Paragraph(fix_arabic("4. التوصيات الهندسية وخطة الإصحاح الميداني"), h1_style))
     recs = [
         "• تركيب آبار مراقبة دائمة (Monitoring Wells) على عمق 6.0 أمتار لمتابعة اتجاه جريان المياه الجوفية.",
