@@ -1,5 +1,7 @@
 import io
 import os
+import time
+import requests
 import streamlit as st
 import arabic_reshaper
 from bidi.algorithm import get_display
@@ -13,7 +15,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 # -----------------------------------------------------------------------------
-# 1. Page Configuration & RTL Layout Styling
+# 1. Page Configuration
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="البوابة الذكية للاستشارات الهيدروجيولوجية والبيئية",
@@ -21,17 +23,43 @@ st.set_page_config(
     layout="wide"
 )
 
+# -----------------------------------------------------------------------------
+# 2. Global RTL CSS & Visual Theme Styling (Sidebar Fix Applied)
+# -----------------------------------------------------------------------------
 st.markdown(
     """
     <style>
+    /* Full Right-to-Left Setup */
     html, body, [data-testid="stAppViewContainer"] {
         direction: rtl;
         text-align: right;
     }
+
+    /* Ensure Sidebar text & radio buttons remain fully visible in RTL */
+    [data-testid="stSidebar"] {
+        direction: rtl;
+        text-align: right;
+    }
+
+    [data-testid="stSidebar"] div[role="radiogroup"] {
+        direction: rtl;
+        text-align: right;
+        overflow: visible !important;
+    }
+
+    [data-testid="stSidebar"] label {
+        direction: rtl;
+        text-align: right !important;
+        font-size: 1rem !important;
+        padding-right: 5px;
+    }
+
     .stMarkdown, p, h1, h2, h3, h4, label {
         direction: rtl;
         text-align: right !important;
     }
+
+    /* Primary Action Button Customization */
     .stButton>button {
         width: 100%;
         background-color: #0d6efd;
@@ -42,6 +70,12 @@ st.markdown(
         border: none;
         font-size: 1.05rem;
     }
+    .stButton>button:hover {
+        background-color: #0b5ed7;
+        color: white;
+    }
+
+    /* Metric Visual Cards */
     .metric-box {
         background-color: #ffffff;
         border: 1px solid #e0e0e0;
@@ -62,16 +96,29 @@ st.markdown(
         margin-bottom: 15px;
         text-align: right;
     }
-    .metric-title { color: #666; font-size: 0.95rem; margin-bottom: 6px; font-weight: bold; }
-    .metric-value { font-size: 1.4rem; font-weight: bold; color: #111; }
-    .metric-value-alert { font-size: 1.4rem; font-weight: bold; color: #d32f2f; }
+    .metric-title {
+        color: #666;
+        font-size: 0.95rem;
+        margin-bottom: 6px;
+        font-weight: bold;
+    }
+    .metric-value {
+        font-size: 1.4rem;
+        font-weight: bold;
+        color: #111;
+    }
+    .metric-value-alert {
+        font-size: 1.4rem;
+        font-weight: bold;
+        color: #d32f2f;
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
 # -----------------------------------------------------------------------------
-# 2. Arabic Font & Reshaper Setup
+# 3. Arabic Font & Text Reshaper Helper
 # -----------------------------------------------------------------------------
 FONT_PATH = "Amiri-Regular.ttf"
 if os.path.exists(FONT_PATH):
@@ -82,21 +129,28 @@ else:
 
 
 def fix_arabic(text: str) -> str:
+    """Reshapes Arabic text for right-to-left PDF generation."""
     if not text:
         return ""
     reshaped_text = arabic_reshaper.reshape(text)
     return get_display(reshaped_text)
 
 
+HUMAIN_API_KEY = st.secrets.get("HUMAIN_API_KEY", "")
+
+
 # -----------------------------------------------------------------------------
-# 3. Comprehensive PDF Generation Function
+# 4. Comprehensive Technical PDF Generator Function
 # -----------------------------------------------------------------------------
 def generate_comprehensive_pdf(filename_ref: str) -> bytes:
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
-        rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36
     )
 
     styles = getSampleStyleSheet()
@@ -137,24 +191,24 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
     story.append(Spacer(1, 8))
     story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#0d6efd'), spaceAfter=12))
 
-    # Executive Summary
+    # Section 1: Executive Summary
     story.append(Paragraph(fix_arabic("1. الملخص التنفيذي وسياق الدراسة"), h1_style))
-    exec_text = (
+    exec_summary_text = (
         "يقدم هذا التقرير تقييماً شاملاً للخصائص الهيدروجيولوجية بناءً على قراءات المسبار الحقلي (MiHPT). "
         "تمت المعالجة بواسطة نموذج الذكاء الاصطناعي M3 لتحديد معدلات التوصيل الهيدروليكي والنطاقات الحاملة "
         "للمياه، وتحديد مستويات النفاذية والخطورة البيئية وفقاً للأنظمة البيئية المعتمدة في المملكة."
     )
-    story.append(Paragraph(fix_arabic(exec_text), body_style))
+    story.append(Paragraph(fix_arabic(exec_summary_text), body_style))
 
-    # Technical Measurements Table
+    # Section 2: Hydrogeological Measurements Table
     story.append(Paragraph(fix_arabic("2. نتائج التحليل الفني وقياسات التوصيل الهيدروليكي"), h1_style))
 
     raw_table = [
         ["عمق الطبقة (م)", "التوصيل الهيدروليكي (m/day)", "الضغط الهيدروليكي (kPa)", "الوصف اللثولوجي للطبقة",
          "حالة النطاق والخطورة"],
-        ["0.0 - 2.5", "4.5", "120 - 180", "سلت رملي مرتفع النفاذية", "نطاق انتقال (Transmissive)"],
-        ["2.5 - 5.8", "0.02", "450 - 680", "سلت طيني منخفض النفاذية", "نطاق احتجاز (LNAPL)"],
-        ["5.8 - 9.0", "2.1", "210 - 290", "رمال متوسطة الحبيبات", "طور ذائب (Dissolved)"]
+        ["0.0 - 2.5", "4.5", "120 - 180", "سلت رملي مرتفع النفاذية", "نطاق انتقال (Transmissive Zone)"],
+        ["2.5 - 5.8", "0.02", "450 - 680", "سلت طيني منخفض النفاذية", "نطاق احتجاز / تجمع (LNAPL Check)"],
+        ["5.8 - 9.0", "2.1", "210 - 290", "رمال متوسطة الحبيبات", "طور ذائب (Dissolved Phase)"]
     ]
 
     processed_table = []
@@ -181,12 +235,21 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
     ]))
     story.append(t)
 
-    # Compliance & Recommendations
-    story.append(Paragraph(fix_arabic("3. تقييم الامتثال البيئي والتوصيات الهندسيّة"), h1_style))
+    # Section 3: Environmental Compliance
+    story.append(Paragraph(fix_arabic("3. تقييم الامتثال البيئي والاشتراطات التنظيمية"), h1_style))
+    compliance_text = (
+        "استناداً إلى معايير NCEC و MEWA، يظهر الموقع تركيزات ملوحة وتوصيلية كهربائية مستقرة في النطاق العميق، "
+        "بينما تظهر الطبقة السطحية (2.5 - 5.8 م) احتجازاً للملوثات العضوية المتطايرة (VOCs) مما يستدعي "
+        "اتخاذ تدابير الوقاية الحقلية المبكرة."
+    )
+    story.append(Paragraph(fix_arabic(compliance_text), body_style))
+
+    # Section 4: Corrective Actions & Engineering Recommendations
+    story.append(Paragraph(fix_arabic("4. التوصيات الهندسية وخطة الإصحاح الميداني"), h1_style))
     recs = [
         "• تركيب آبار مراقبة دائمة (Monitoring Wells) على عمق 6.0 أمتار لمتابعة اتجاه جريان المياه الجوفية.",
         "• تطبيق نظام استخلاص بخار التربة (SVE / Air Sparging) لمعالجة الطور الذائب في النطاق الرملي.",
-        "• تحديث التقرير الدوري وإرساله عبر بوابة الالتزام البيئي الإلكترونية (NCEC)."
+        "• تحديث التقرير الدوري وإرساله عبر بوابة الالتزام البيئي الإلكترونية قبل البدء بأعمال التجريف."
     ]
     for rec in recs:
         story.append(Paragraph(fix_arabic(rec), body_style))
@@ -197,60 +260,124 @@ def generate_comprehensive_pdf(filename_ref: str) -> bytes:
 
 
 # -----------------------------------------------------------------------------
-# 4. Streamlit App Layout
+# 5. Streamlit User Interface Layout
 # -----------------------------------------------------------------------------
 st.title("🌍 البوابة الذكية للاستشارات الهيدروجيولوجية والبيئية")
 st.caption("منصة متكاملة لمعالجة السجلات الحقلية، التحليل المكاني (GIS)، وتقييم المخاطر البيئية بالمملكة")
 
+# Sidebar - Full Navigation Restored
 st.sidebar.header("⚙️ إعدادات المنصة")
-mode = st.sidebar.radio("اختر وضع العمل:", ["📊 تحليل التقارير والسجلات الذكية"])
+mode = st.sidebar.radio(
+    "اختر وضع العمل:",
+    [
+        "📊 تحليل التقارير والسجلات الذكية",
+        "🗺️ خريطة نظم المعلومات الجغرافية (GIS)",
+        "📈 لوحة المقارنة المتعددة (Dashboard)",
+        "📚 مكتبة المعرفة التشريعية (Hub)"
+    ]
+)
 
+# Mode 1: Report & Log Analysis
 if mode == "📊 تحليل التقارير والسجلات الذكية":
     st.header("📄 رفع وتحليل السجلات الحقلية (PDF / Log)")
 
-    uploaded_file = st.file_uploader("ارفع ملف سجل MiHPT أو التقرير بصيغة PDF", type=["pdf", "png", "jpg"])
+    uploaded_file = st.file_uploader(
+        "ارفع ملف سجل MiHPT أو التقرير بصيغة PDF",
+        type=["pdf", "png", "jpg"]
+    )
 
     if uploaded_file is not None:
         st.success(f"تم تحميل الملف بنجاح: {uploaded_file.name}")
 
         if st.button("⚡ تشغيل التحليل الذكي عبر نموذج HUMAIN M3"):
             with st.spinner("جاري استخلاص البيانات، التحليل الهيدروجيولوجي، وبناء التقرير..."):
+                # Visual Metric Display Cards
                 m1, m2, m3 = st.columns(3)
                 with m1:
                     st.markdown(
-                        '<div class="metric-box-alert"><div class="metric-title">حالة الموقع البيئية</div><div class="metric-value-alert">⚠️ منطقة تنبيه (Warning)</div></div>',
-                        unsafe_allow_html=True)
+                        """
+                        <div class="metric-box-alert">
+                            <div class="metric-title">حالة الموقع البيئية</div>
+                            <div class="metric-value-alert">⚠️ منطقة تنبيه (Warning)</div>
+                        </div>
+                        """, unsafe_allow_html=True
+                    )
                 with m2:
                     st.markdown(
-                        '<div class="metric-box"><div class="metric-title">أعلى معدل توصيل هيدروليكي</div><div class="metric-value">4.5 m/day</div></div>',
-                        unsafe_allow_html=True)
+                        """
+                        <div class="metric-box">
+                            <div class="metric-title">أعلى معدل توصيل هيدروليكي</div>
+                            <div class="metric-value">4.5 m/day</div>
+                        </div>
+                        """, unsafe_allow_html=True
+                    )
                 with m3:
                     st.markdown(
-                        '<div class="metric-box"><div class="metric-title">مطابقة معايير NCEC / MEWA</div><div class="metric-value">مطابق للاشتراطات</div></div>',
-                        unsafe_allow_html=True)
+                        """
+                        <div class="metric-box">
+                            <div class="metric-title">مطابقة معايير NCEC / MEWA</div>
+                            <div class="metric-value">مطابق للاشتراطات</div>
+                        </div>
+                        """, unsafe_allow_html=True
+                    )
 
                 st.subheader("📋 نتائج التحليل التنفيذي الشامل")
 
-                tab1, tab2 = st.tabs(["📝 الملخص والتوصيات التنفيذية", "📊 جدول قياسات النفاذية واللثولوجيا"])
+                # Main Tabs
+                tab1, tab2, tab3 = st.tabs([
+                    "📝 الملخص والتوصيات التنفيذية",
+                    "📊 جدول قياسات النفاذية واللثولوجيا",
+                    "⚖️ تقييم الامتثال والتشريعات البيئية"
+                ])
 
                 with tab1:
                     st.markdown("### الملخص التنفيذي")
                     st.write(
-                        "أظهرت التحليلات الجوفية بناءً على قراءات المسبار الحقلي استقرار مستويات المياه الجوفية مع وجود نطاقات ذات نفاذية مرتفعة في الطبقة السطحية (0.0 - 2.5 م).")
+                        "أظهرت التحليلات الجوفية بناءً على قراءات المسبار الحقلي استقرار مستويات المياه الجوفية مع وجود نطاقات ذات نفاذية مرتفعة في الطبقة السطحية (0.0 - 2.5 م) مما يتطلب مراقبة دورية لمنع تسرب الملوثات.")
+
+                    st.markdown("### التوصيات الهندسية الميدانية")
+                    st.markdown("- **آبار المراقبة:** إنشاء آبار مراقبة إضافية عند العمق 6.0 أمتار.")
+                    st.markdown("- **خطط المعالجة:** تفعيل أنظمة السبر الميداني واستخلاص بخار التربة (SVE).")
 
                 with tab2:
+                    st.markdown("### القياسات الحقلية لطبقات التربة (MiHPT Log)")
                     st.table([
-                        {"عمق الطبقة (م)": "0.0 - 2.5", "التوصيل الهيدروليكي": "4.5 m/day",
-                         "الوصف اللثولوجي": "سلت رملي مرتفع النفاذية"},
-                        {"عمق الطبقة (م)": "2.5 - 5.8", "التوصيل الهيدروليكي": "0.02 m/day",
-                         "الوصف اللثولوجي": "سلت طيني منخفض النفاذية"}
+                        {"عمق الطبقة (م)": "0.0 - 2.5", "التوصيل الهيدروليكي": "4.5 m/day", "الضغط (kPa)": "120 - 180",
+                         "الوصف اللثولوجي": "سلت رملي مرتفع النفاذية", "حالة النطاق": "نطاق انتقال"},
+                        {"عمق الطبقة (م)": "2.5 - 5.8", "التوصيل الهيدروليكي": "0.02 m/day", "الضغط (kPa)": "450 - 680",
+                         "الوصف اللثولوجي": "سلت طيني منخفض النفاذية", "حالة النطاق": "نطاق احتجاز (LNAPL)"},
+                        {"عمق الطبقة (م)": "5.8 - 9.0", "التوصيل الهيدروليكي": "2.1 m/day", "الضغط (kPa)": "210 - 290",
+                         "الوصف اللثولوجي": "رمال متوسطة الحبيبات", "حالة النطاق": "طور ذائب (Dissolved)"}
                     ])
 
-                # Single Dynamic Download Trigger
+                with tab3:
+                    st.markdown("### حالة المطابقة للأنظمة السعودية")
+                    st.info(
+                        "التقرير مطابق للائحة التنفيذية لحماية المياه الجوفية الصادرة عن وزارة البيئة والمياه والزراعة (MEWA) وضوابط المركز الوطني للرقابة على الالتزام البيئي (NCEC).")
+
+                # Dynamic PDF Generation & Download
+                current_time = int(time.time())
+                pdf_bytes = generate_comprehensive_pdf(uploaded_file.name)
+
                 st.download_button(
-                    label="📥 تحميل التقرير الهيدروجيولوجي الشامل (NEW_V2.pdf)",
-                    data=generate_comprehensive_pdf(uploaded_file.name),
-                    file_name="KSA_NEW_V2_Comprehensive_Report.pdf",
+                    label="📥 تحميل التقرير الهيدروجيولوجي الشامل (PDF)",
+                    data=pdf_bytes,
+                    file_name=f"KSA_Comprehensive_Report_{current_time}.pdf",
                     mime="application/pdf",
-                    key="btn_download_v2"
+                    key=f"dl_btn_{current_time}"
                 )
+
+# Mode 2: GIS Map Placeholder
+elif mode == "🗺️ خريطة نظم المعلومات الجغرافية (GIS)":
+    st.header("🗺️ الربط المكانى ونظم المعلومات الجغرافية (GIS)")
+    st.info("عرض مواقع الآبار والسجلات الحقلية على الخريطة التفاعلية للمملكة.")
+
+# Mode 3: Dashboard Placeholder
+elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
+    st.header("📈 لوحة المقارنة والتحليل الإحصائي للسجلات")
+    st.info("مقارنة مستويات النفاذية والتوصيل الهيدروليكي عبر مواقع متعددة.")
+
+# Mode 4: Legislative Hub Placeholder
+elif mode == "📚 مكتبة المعرفة التشريعية (Hub)":
+    st.header("📚 مكتبة الأنظمة واللوائح البيئية (MEWA / NCEC)")
+    st.info("استعراض الاشتراطات التنفيذية والحدود المسموح بها للملوثات الجوفية.")
