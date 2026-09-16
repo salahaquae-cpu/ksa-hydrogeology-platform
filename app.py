@@ -16,13 +16,26 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import arabic_reshaper
 from bidi.algorithm import get_display
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
-# --- Page Configuration ---
-st.set_page_config(
-    page_title="البوابة الذكية للاستشارات الهيدروجيولوجية والبيئية",
-    page_icon="🌍",
-    layout="wide"
-)
+# 1. Register an Arabic font (Ensure the .ttf file exists in your directory)
+# You can download Amiri-Regular.ttf from Google Fonts
+pdfmetrics.registerFont(TTFont('ArabicFont', 'Amiri-Regular.ttf'))
+
+# 2. Reshape and reorder Arabic text before passing it to ReportLab
+def fix_arabic(text):
+    if not text:
+        return ""
+    reshaped_text = arabic_reshaper.reshape(text)
+    bidi_text = get_display(reshaped_text)
+    return bidi_text
+
+# 3. Use the font and helper when creating elements:
+# Example: drawString using the registered Arabic font
+canvas.setFont("ArabicFont", 12)
+canvas.drawString(100, 700, fix_arabic("البوابة الذكية للاستشارات"))
 
 # --- Force True RTL Arabic Layout & Alignment ---
 st.markdown(
