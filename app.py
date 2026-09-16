@@ -337,9 +337,11 @@ if mode == "📊 تحليل التقارير والسجلات الذكية":
                 pdf_bytes = generate_comprehensive_pdf(uploaded_file.name)
 
                 # 2. Bind the updated bytes to the download button
+                # Ensure fresh PDF generation on download
                 st.download_button(
                     label="📥 تحميل التقرير الهيدروجيولوجي الشامل (PDF)",
-                    data=pdf_bytes,
+                    data=generate_comprehensive_pdf(uploaded_file.name),  # Generates fresh PDF bytes on demand
                     file_name="KSA_Comprehensive_Hydrogeological_Report.pdf",
-                    mime="application/pdf"
+                    mime="application/pdf",
+                    key="download_pdf_btn"
                 )
