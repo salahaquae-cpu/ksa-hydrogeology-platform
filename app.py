@@ -533,10 +533,11 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
         st.subheader("📋 جدول البيانات المجمعة للآبار المحددة")
         st.dataframe(filtered_df, use_container_width=True)
 
-        # CSV Batch Export Utility
-        csv_data = filtered_df.to_csv(index=False).encode('utf-8-sig')
+        # Excel-Optimized CSV Batch Export Utility
+        # Adding sep=; and utf-8-sig BOM ensures Excel parses columns automatically in all regional settings
+        csv_data = filtered_df.to_csv(index=False, sep=';').encode('utf-8-sig')
         st.download_button(
-            label="📥 تصدير التقرير الإحصائي الشامل (CSV / Excel)",
+            label="📥 تصدير التقرير الإحصائي الشامل (Excel CSV)",
             data=csv_data,
             file_name=f"KSA_Borehole_Batch_Report_{int(time.time())}.csv",
             mime="text/csv"
