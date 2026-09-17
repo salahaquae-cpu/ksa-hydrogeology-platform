@@ -487,25 +487,62 @@ elif mode == "🗺️ خريطة نظم المعلومات الجغرافية (G
     st_folium(m, width="100%", height=500)
 
 elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
-    st.header("📈 لوحة المقارنة والتحليل الإحصائي للسجلات الحقلية")
+    st.header("📈 لوحة المقارنة والتحليل الإحصائي لسجلات الآبار (Batch Export)")
+    st.caption("تحليل إحصائي مقارن وتصدير بيانات الآبار المتعددة وفق معايير NCEC / MEWA")
 
-    col1, col2 = st.columns(2)
+    # Sample Multi-Borehole Dataset
+    batch_data = pd.DataFrame([
+        {"البئر": "BH-01 (الرياض)", "المنطقة": "الرياض", "العمق الكلي (م)": 9.0, "أقصى توصيل (m/day)": 4.5, "متوسط الضغط (kPa)": 250, "حالة التنبيه": "منطقة تنبيه"},
+        {"البئر": "BH-02 (الدمام)", "المنطقة": "الشرقية", "العمق الكلي (م)": 12.5, "أقصى توصيل (m/day)": 1.2, "متوسط الضغط (kPa)": 420, "حالة التنبيه": "آمن"},
+        {"البئر": "BH-03 (جدة)", "المنطقة": "مكة المكرمة", "العمق الكلي (م)": 8.0, "أقصى توصيل (m/day)": 0.05, "متوسط الضغط (kPa)": 580, "حالة التنبيه": "احتجاز طيني"},
+        {"البئر": "BH-04 (الجبيل)", "المنطقة": "الشرقية", "العمق الكلي (م)": 15.0, "أقصى توصيل (m/day)": 3.8, "متوسط الضغط (kPa)": 310, "حالة التنبيه": "متابعة دورية"},
+        {"البئر": "BH-05 (ينبع)", "المنطقة": "المدينة المنورة", "العمق الكلي (م)": 10.0, "أقصى توصيل (m/day)": 2.9, "متوسط الضغط (kPa)": 290, "حالة التنبيه": "آمن"}
+    ])
 
-    with col1:
-        st.subheader("مقارنة معدلات التوصيل الهيدروليكي (m/day)")
-        chart_data = pd.DataFrame({
-            "الموقع": ["BH-01 الرياض", "BH-02 الدمام", "BH-03 جدة", "BH-04 الجبيل"],
-            "التوصيل الهيدروليكي": [4.5, 1.2, 0.05, 3.8]
-        })
-        st.bar_chart(chart_data.set_index("الموقع"))
+    # Multi-Select Filter
+    selected_wells = st.multiselect(
+        "اختر الآبار لإدراجها في المقارنة والتقرير الإحصائي:",
+        options=batch_data["البئر"].tolist(),
+        default=batch_data["البئر"].tolist()
+    )
 
-    with col2:
-        st.subheader("توزيع ضغط النفاذية حسب العمق (kPa)")
-        depth_data = pd.DataFrame({
-            "العمق (أمتار)": [1, 2, 3, 4, 5, 6, 7, 8],
-            "ضغط المسبار (kPa)": [120, 150, 480, 620, 510, 230, 210, 205]
-        })
-        st.line_chart(depth_data.set_index("العمق (أمتار)"))
+    filtered_df = batch_data[batch_data["البئر"].isin(selected_wells)]
+
+    if not filtered_df.empty:
+        # Key Aggregated Metrics
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            st.metric("عدد الآبار المحددة", len(filtered_df))
+        with m2:
+            st.metric("متوسط التوصيل الهيدروليكي", f"{filtered_df['أقصى توصيل (m/day)'].mean():.2f} m/day")
+        with m3:
+            st.metric("أعلى قيمة توصيل سجلت", f"{filtered_df['أقصى توصيل (m/day)'].max():.2f} m/day")
+        with m4:
+            st.metric("متوسط الضغط الحقلي", f"{filtered_df['متوسط الضغط (kPa)'].mean():.0f} kPa")
+
+        st.markdown("---")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("مقارنة معدلات التوصيل الهيدروليكي (m/day)")
+            st.bar_chart(filtered_df.set_index("البئر")["أقصى توصيل (m/day)"])
+        with col2:
+            st.subheader("توزيع ضغط النفاذية حسب الآبار (kPa)")
+            st.line_chart(filtered_df.set_index("البئر")["متوسط الضغط (kPa)"])
+
+        st.subheader("📋 جدول البيانات المجمعة للآبار المحددة")
+        st.dataframe(filtered_df, use_container_width=True)
+
+        # CSV Batch Export Utility
+        csv_data = filtered_df.to_csv(index=False).encode('utf-8-sig')
+        st.download_button(
+            label="📥 تصدير التقرير الإحصائي الشامل (CSV / Excel)",
+            data=csv_data,
+            file_name=f"KSA_Borehole_Batch_Report_{int(time.time())}.csv",
+            mime="text/csv"
+        )
+    else:
+        st.warning("يرجى اختيار بئر واحد على الأقل من القائمة أعلاه لعرض المقارنة.")
 
 elif mode == "📚 مكتبة المعرفة التشريعية (Hub)":
     st.header("📚 مكتبة الأنظمة واللوائح البيئية (MEWA / NCEC)")
