@@ -536,9 +536,17 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
         # Excel-Optimized CSV Batch Export Utility
         # Adding sep=; and utf-8-sig BOM ensures Excel parses columns automatically in all regional settings
         # Native Excel (.xlsx) Batch Export Utility
+        # Native Excel (.xlsx) Batch Export Utility with Autofit
         excel_buffer = io.BytesIO()
         with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
             filtered_df.to_excel(writer, index=False, sheet_name='Borehole Summary')
+
+            # Auto-adjust column widths
+            worksheet = writer.sheets['Borehole Summary']
+            for idx, col in enumerate(filtered_df.columns):
+                max_len = max(filtered_df[col].astype(str).map(len).max(), len(col)) + 4
+                worksheet.set_column(idx, idx, max_len)
+
         excel_bytes = excel_buffer.getvalue()
 
         st.download_button(
