@@ -397,9 +397,16 @@ if mode == "📊 تحليل التقارير والسجلات الذكية":
 
 elif mode == "🗺️ خريطة نظم المعلومات الجغرافية (GIS)":
     st.header("🗺️ الربط المكاني ونظم المعلومات الجغرافية (GIS)")
-    st.caption("تتبع آبار المراقبة والسجلات الحقلية عبر مواقع المملكة العربية السعودية")
+    st.caption("تتبع آبار المراقبة والسجلات الحقلية أو رفع ملفات KML / GeoJSON الخاصة بالموقع")
 
-    well_data = pd.DataFrame([
+    # File Uploader for Custom GIS Data
+    gis_file = st.file_uploader(
+        "رفع ملف طبقات مكاني (KML / GeoJSON / JSON)",
+        type=["kml", "geojson", "json"]
+    )
+
+    # Base Sample Borehole GIS Locations in KSA
+    default_wells = [
         {"id": "BH-01 (الرياض)", "lat": 24.7136, "lon": 46.6753, "k_val": "4.5 m/day", "status": "منطقة تنبيه",
          "color": "red"},
         {"id": "BH-02 (الدمام)", "lat": 26.4207, "lon": 50.0888, "k_val": "1.2 m/day", "status": "آمن",
@@ -408,17 +415,66 @@ elif mode == "🗺️ خريطة نظم المعلومات الجغرافية (G
          "color": "orange"},
         {"id": "BH-04 (الجبيل)", "lat": 27.0049, "lon": 49.6593, "k_val": "3.8 m/day", "status": "متابعة دورية",
          "color": "blue"}
-    ])
+    ]
 
+    custom_wells = []
+
+    # Parse Custom Uploaded GIS Files
+    if gis_file is not None:
+        try:
+            file_content = gis_file.getvalue().decode("utf-8")
+
+            # Simple GeoJSON Parser
+            if gis_file.name.endswith(".geojson") or gis_file.name.endswith(".json"):
+                geo_data = json.loads(file_content)
+                for idx, feature in enumerate(geo_data.get("features", [])):
+                    geom = feature.get("geometry", {})
+                    props = feature.get("properties", {})
+                    if geom.get("type") == "Point":
+                        lon, lat = geom.get("coordinates")[:2]
+                        custom_wells.append({
+                            "id": props.get("name", f"موقع مخصص {idx + 1}"),
+                            "lat": lat,
+                            "lon": lon,
+                            "k_val": props.get("k_value", "غير محدد"),
+                            "status": props.get("status", "موقع مرفوع"),
+                            "color": "purple"
+                        })
+                st.success(f"تم تحميل {len(custom_wells)} موقع/بئر من ملف GeoJSON بنجاح!")
+
+            # Simple KML Coordinates Parser
+            elif gis_file.name.endswith(".kml"):
+                coords = re.findall(r'<coordinates>\s*([\d\.-]+),([\d\.-]+)', file_content)
+                for idx, (lon, lat) in enumerate(coords):
+                    custom_wells.append({
+                        "id": f"بئر KML {idx + 1}",
+                        "lat": float(lat),
+                        "lon": float(lon),
+                        "k_val": "3.1 m/day",
+                        "status": "موقع مرفوع (KML)",
+                        "color": "purple"
+                    })
+                st.success(f"تم استخراج {len(custom_wells)} إحداثية من ملف KML بنجاح!")
+        except Exception as e:
+            st.error(f"حدث خطأ أثناء قراءة ملف GIS: {str(e)}")
+
+    # Combine Base Data with Custom Uploads
+    all_wells = pd.DataFrame(default_wells + custom_wells)
+
+    # Filter Controls
     selected_status = st.multiselect(
         "تصفية حسب حالة البئر البيئية:",
-        options=well_data["status"].unique(),
-        default=well_data["status"].unique()
+        options=all_wells["status"].unique(),
+        default=all_wells["status"].unique()
     )
 
-    filtered_wells = well_data[well_data["status"].isin(selected_status)]
+    filtered_wells = all_wells[all_wells["status"].isin(selected_status)]
 
-    m = folium.Map(location=[24.0, 45.0], zoom_start=6, tiles="OpenStreetMap")
+    # Center map over Saudi Arabia or uploaded custom point
+    center_lat = filtered_wells["lat"].mean() if not filtered_wells.empty else 24.0
+    center_lon = filtered_wells["lon"].mean() if not filtered_wells.empty else 45.0
+
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=6, tiles="OpenStreetMap")
 
     for _, row in filtered_wells.iterrows():
         folium.Marker(
