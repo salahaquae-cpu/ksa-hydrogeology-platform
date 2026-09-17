@@ -535,12 +535,17 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
 
         # Excel-Optimized CSV Batch Export Utility
         # Adding sep=; and utf-8-sig BOM ensures Excel parses columns automatically in all regional settings
-        csv_data = filtered_df.to_csv(index=False, sep=';').encode('utf-8-sig')
+        # Native Excel (.xlsx) Batch Export Utility
+        excel_buffer = io.BytesIO()
+        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+            filtered_df.to_excel(writer, index=False, sheet_name='Borehole Summary')
+        excel_bytes = excel_buffer.getvalue()
+
         st.download_button(
-            label="📥 تصدير التقرير الإحصائي الشامل (Excel CSV)",
-            data=csv_data,
-            file_name=f"KSA_Borehole_Batch_Report_{int(time.time())}.csv",
-            mime="text/csv"
+            label="📥 تصدير التقرير الإحصائي الشامل (Excel .xlsx)",
+            data=excel_bytes,
+            file_name=f"KSA_Borehole_Batch_Report_{int(time.time())}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     else:
         st.warning("يرجى اختيار بئر واحد على الأقل من القائمة أعلاه لعرض المقارنة.")
