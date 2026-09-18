@@ -30,6 +30,30 @@ st.set_page_config(
     layout="wide"
 )
 
+# Global RTL CSS Injection (Restores Right-to-Left Arabic Alignment)
+st.markdown("""
+    <style>
+    /* Force Right-to-Left Layout for Main Area & Sidebar */
+    .stApp {
+        direction: rtl;
+        text-align: right;
+    }
+    [data-testid="stSidebar"] {
+        direction: rtl;
+        text-align: right;
+    }
+    /* Align Form Controls & Headers */
+    div[role="radiogroup"] {
+        direction: rtl;
+        text-align: right;
+    }
+    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p {
+        direction: rtl;
+        text-align: right;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Initialize Session States
 if "pdf_text" not in st.session_state:
     st.session_state.pdf_text = ""
@@ -48,8 +72,8 @@ def fix_arabic(text):
 # Domain Validation for Uploaded Files
 def extract_and_validate_pdf(uploaded_file):
     """
-    Extracts text from an uploaded PDF and checks for hydrogeological keywords.
-    Blocks invalid documents like personal certificates or non-technical files.
+    Extracts text from an uploaded PDF and checks for mandatory hydrogeological keywords.
+    Blocks non-relevant documents (e.g., certificates, invoices) with an error state.
     """
     try:
         uploaded_file.seek(0)
@@ -60,7 +84,7 @@ def extract_and_validate_pdf(uploaded_file):
             if text:
                 extracted_text += text + " "
 
-        # Mandatory domain keywords
+        # Mandatory hydrogeological domain keywords
         required_keywords = [
             "hydraulic", "conductivity", "permeability", "mihpt", "hpt",
             "borehole", "lithology", "k-value", "pressure", "soil", "water",
@@ -87,7 +111,7 @@ mode = st.sidebar.radio(
     ]
 )
 
-# Header
+# Global Header
 st.title("🌍 البوابة الذكية للاستشارات الهيدروجيولوجية والبيئية")
 st.caption("منصة متكاملة لمعالجة السجلات الحقلية، التحليل المكاني (GIS)، وتقييم المخاطر البيئية بالمملكة")
 
@@ -100,7 +124,7 @@ if mode == "📊 تحليل التقارير والسجلات الذكية":
     if uploaded_file is not None:
         st.info(f"تم تحميل الملف: {uploaded_file.name}")
 
-        # Domain Keyword Validation
+        # Domain Keyword Validation Check
         is_valid_log, extracted_text = extract_and_validate_pdf(uploaded_file)
 
         if not is_valid_log:
@@ -213,7 +237,7 @@ elif mode == "🗺️ خريطة نظم المعلومات الجغرافية (G
 
     st_folium(m, width="100%", height=500)
 
-# Mode 3: Multi-Borehole Dashboard & Batch Export
+# Mode 3: Dashboard & Batch Export
 elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
     st.header("📈 لوحة المقارنة والتحليل الإحصائي لسجلات الآبار (Batch Export)")
     st.caption("تحليل إحصائي مقارن وتصدير بيانات الآبار المتعددة وفق معايير NCEC / MEWA")
@@ -287,7 +311,7 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
 # Mode 4: Legislative Hub
 elif mode == "📚 مكتبة المعرفة التشريعية (Hub)":
     st.header("📚 مكتبة التشريعات والمعايير البيئية الهيدروجيولوجية (NCEC / MEWA)")
-    st.caption("دليل مرجعي تفاعلي للاشتراطات والحدود المسموح بها للملوثات والنفاذية بالمملكة")
+    st.caption("دليل مرجعي تفاعلي للااشتراطات والحدود المسموح بها للملوثات والنفاذية بالمملكة")
 
     search_term = st.text_input("🔍 ابحث عن معيار بيئي أو ملوث (مثال: نفاذية، ملوحة، LNAPL):", "")
 
