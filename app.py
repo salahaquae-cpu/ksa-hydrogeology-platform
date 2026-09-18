@@ -114,25 +114,39 @@ def generate_arabic_pdf(filename):
 
 # Domain Validation for Uploaded Files
 def extract_and_validate_pdf(uploaded_file):
+    """
+    Validates uploaded PDFs by checking extracted text or fallbacks for image-based logs.
+    """
     try:
         uploaded_file.seek(0)
         pdf_reader = pypdf.PdfReader(uploaded_file)
+        num_pages = len(pdf_reader.pages)
+
         extracted_text = ""
         for page in pdf_reader.pages:
             text = page.extract_text()
             if text:
                 extracted_text += text + " "
 
-        # Strict combination: Must match specific borehole/test identifiers
+        # 1. Text-based keyword match
         required_keywords = [
-            "hydraulic conductivity", "permeability", "mihpt", "borehole log",
-            "lithology", "k-value", "نفاذية", "توصيل هيدروليكي", "سجل بئر", "اختبار ضغط"
+            "hydraulic", "conductivity", "permeability", "mihpt", "hpt",
+            "borehole", "lithology", "k-value", "pressure", "soil", "water",
+            "نفاذية", "توصيل", "بئر", "تربة", "ضغط", "هيدرولوجي", "مياه"
         ]
 
         text_lower = extracted_text.lower()
-        is_valid = any(keyword in text_lower for keyword in required_keywords)
+        has_keywords = any(keyword in text_lower for keyword in required_keywords)
 
-        return is_valid, extracted_text
+        # 2. File-name heuristic fallback for scanned logs (e.g., hpt, mihpt, log, borehole)
+        file_name_lower = uploaded_file.name.lower()
+        log_file_match = any(term in file_name_lower for term in ["hpt", "mihpt", "log", "borehole", "ref"])
+
+        # If it has extracted text keywords OR is an image-based PDF matching log naming patterns
+        if has_keywords or (num_pages > 0 and log_file_match):
+            return True, extracted_text
+
+        return False, extracted_text
     except Exception as e:
         return False, str(e)
 
