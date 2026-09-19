@@ -442,6 +442,8 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
                 xaxis=dict(title="التوصيل الهيدروليكي (m/day)", side="top"),
                 plot_bgcolor="rgba(240, 246, 255, 1)",
                 title_x=0.5,
+                title_y=0.95,  # Pushes title to the very top
+                margin=dict(t=100),  # Adds 100px of empty space at the top so they don't collide
                 font=dict(family="Arial", size=14)
             )
 
