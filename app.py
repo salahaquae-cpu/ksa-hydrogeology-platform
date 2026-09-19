@@ -1,3 +1,5 @@
+import plotly.express as px
+import plotly.graph_objects as go
 import io
 import os
 import re
@@ -394,7 +396,71 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
             file_name=f"KSA_Borehole_Batch_Report_{int(time.time())}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+        # Native Excel (.xlsx) Batch Export Utility with Column Autofit & RTL
+        excel_buffer = io.BytesIO()
+        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
+            filtered_df.to_excel(writer, index=False, sheet_name='Borehole Summary')
+            worksheet = writer.sheets['Borehole Summary']
 
+            # Force the Excel sheet to Right-to-Left (RTL) orientation
+            worksheet.right_to_left()
+
+            for idx, col in enumerate(filtered_df.columns):
+                max_len = max(filtered_df[col].astype(str).map(len).max(), len(col)) + 4
+                worksheet.set_column(idx, idx, max_len)
+
+        excel_bytes = excel_buffer.getvalue()
+
+        st.download_button(
+            label="📥 تصدير التقرير الإحصائي الشامل (Excel .xlsx)",
+            data=excel_bytes,
+            file_name=f"KSA_Borehole_Batch_Report_{int(time.time())}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        st.markdown("---")
+        st.subheader("📊 النمذجة الرأسية لطبقات البئر (Depth Profiler)")
+
+        # Select a single well for vertical profiling
+        profile_well = st.selectbox("اختر بئراً لعرض القطاع الرأسي للنفاذية:", options=filtered_df["البئر"])
+
+        if profile_well:
+            # Generate synthetic depth log data (0 to 15 meters)
+            depths = np.arange(0.0, 15.5, 0.5)
+            k_values = np.random.uniform(0.5, 4.5, len(depths))
+
+            # Simulate a low-permeability clay retention layer between 4m and 7m
+            clay_mask = (depths >= 4.0) & (depths <= 7.0)
+            k_values[clay_mask] = np.random.uniform(0.01, 0.08, len(depths[clay_mask]))
+
+            profile_df = pd.DataFrame({
+                "العمق (م)": depths,
+                "التوصيل الهيدروليكي (m/day)": k_values
+            })
+
+            # Build the interactive Plotly chart
+            fig = px.line(
+                profile_df,
+                x="التوصيل الهيدروليكي (m/day)",
+                y="العمق (م)",
+                title=f"تغير النفاذية مع العمق - {profile_well}",
+                markers=True
+            )
+
+            # Invert Y-axis for standard geological plotting and style the UI
+            fig.update_layout(
+                yaxis=dict(autorange="reversed", title="العمق تحت السطح (متر)"),
+                xaxis=dict(title="التوصيل الهيدروليكي (m/day)", side="top"),
+                plot_bgcolor="rgba(240, 246, 255, 1)",
+                title_x=0.5,
+                font=dict(family="Arial", size=14)
+            )
+
+            # Red markers for high risk/clay zones, blue line for water transmission
+            fig.update_traces(line_color="#1f4e78", line_width=3, marker=dict(size=8, color="red"))
+
+            # Render in Streamlit
+            st.plotly_chart(fig, use_container_width=True)
 # Mode 4: Legislative Hub
 elif mode == "📚 مكتبة المعرفة التشريعية (Hub)":
     st.header("📚 مكتبة التشريعات والمعايير البيئية الهيدروجيولوجية (NCEC / MEWA)")
