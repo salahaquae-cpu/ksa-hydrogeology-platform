@@ -1,5 +1,3 @@
-import plotly.express as px
-import plotly.graph_objects as go
 import io
 import os
 import re
@@ -12,6 +10,8 @@ import streamlit as st
 import arabic_reshaper
 from bidi.algorithm import get_display
 import pypdf
+import plotly.express as px
+import plotly.graph_objects as go
 
 # GIS Imports
 import folium
@@ -157,16 +157,13 @@ def extract_and_validate_pdf(uploaded_file):
         text_lower = extracted_text.lower()
         file_name_lower = uploaded_file.name.lower()
 
-        # Strict keyword groups
         primary_hydro_terms = ["mihpt", "hpt", "borehole", "lithology", "hydraulic conductivity", "k-value",
                                "permeability"]
         arabic_hydro_terms = ["توصيل هيدروليكي", "نفاذية", "سجل بئر", "لثولوجيا", "اختبار نفاذية"]
 
-        # Count occurrences
         primary_matches = sum(1 for term in primary_hydro_terms if term in text_lower or term in file_name_lower)
         arabic_matches = sum(1 for term in arabic_hydro_terms if term in text_lower)
 
-        # Check if concept notes or generic documents pass falsely
         is_concept_note = "concept" in file_name_lower or "surf" in file_name_lower or "german" in file_name_lower
 
         if is_concept_note and primary_matches < 2:
@@ -248,7 +245,6 @@ if mode == "📊 تحليل التقارير والسجلات الذكية":
             "يوصى بإنشاء آبار مراقبة على عمق 6.0 أمتار لتتبع جودة المياه الجوفية وتفعيل أنظمة SVE."
         )
 
-        # Generate Detailed Arabic PDF Report
         pdf_data = generate_arabic_pdf(st.session_state.get("active_filename", "Borehole_Report"), parsed)
         st.download_button(
             label="📥 تحميل التقرير الهيدروجيولوجي التفصيلي (PDF)",
@@ -380,29 +376,12 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
         st.subheader("📋 جدول البيانات المجمعة للآبار المحددة")
         st.dataframe(filtered_df, use_container_width=True)
 
-        excel_buffer = io.BytesIO()
-        with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
-            filtered_df.to_excel(writer, index=False, sheet_name='Borehole Summary')
-            worksheet = writer.sheets['Borehole Summary']
-            for idx, col in enumerate(filtered_df.columns):
-                max_len = max(filtered_df[col].astype(str).map(len).max(), len(col)) + 4
-                worksheet.set_column(idx, idx, max_len)
-
-        excel_bytes = excel_buffer.getvalue()
-
-        st.download_button(
-            label="📥 تصدير التقرير الإحصائي الشامل (Excel .xlsx)",
-            data=excel_bytes,
-            file_name=f"KSA_Borehole_Batch_Report_{int(time.time())}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
         # Native Excel (.xlsx) Batch Export Utility with Column Autofit & RTL
         excel_buffer = io.BytesIO()
         with pd.ExcelWriter(excel_buffer, engine='xlsxwriter') as writer:
             filtered_df.to_excel(writer, index=False, sheet_name='Borehole Summary')
             worksheet = writer.sheets['Borehole Summary']
 
-            # Force the Excel sheet to Right-to-Left (RTL) orientation
             worksheet.right_to_left()
 
             for idx, col in enumerate(filtered_df.columns):
@@ -456,11 +435,10 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
                 font=dict(family="Arial", size=14)
             )
 
-            # Red markers for high risk/clay zones, blue line for water transmission
             fig.update_traces(line_color="#1f4e78", line_width=3, marker=dict(size=8, color="red"))
 
-            # Render in Streamlit
             st.plotly_chart(fig, use_container_width=True)
+
 # Mode 4: Legislative Hub
 elif mode == "📚 مكتبة المعرفة التشريعية (Hub)":
     st.header("📚 مكتبة التشريعات والمعايير البيئية الهيدروجيولوجية (NCEC / MEWA)")
