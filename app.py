@@ -385,6 +385,32 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
 
         st.subheader("📋 جدول البيانات المجمعة للآبار المحددة")
         st.dataframe(filtered_df, use_container_width=True)
+        st.markdown("---")
+        st.subheader("🛡️ بطاقة الأداء للامتثال البيئي (NCEC / MEWA Scorecard)")
+
+        # Define regulatory thresholds
+        MAX_K_THRESHOLD = 3.0  # m/day
+        MAX_PRESSURE_THRESHOLD = 400  # kPa
+
+        # Calculate compliance metrics
+        high_k_wells = filtered_df[filtered_df["أقصى توصيل (m/day)"] > MAX_K_THRESHOLD]
+        high_pressure_wells = filtered_df[filtered_df["متوسط الضغط (kPa)"] > MAX_PRESSURE_THRESHOLD]
+
+        score_col1, score_col2 = st.columns(2)
+
+        with score_col1:
+            if high_k_wells.empty:
+                st.success("✅ جميع الآبار المحددة مطابقة لمعايير النفاذية (أقل من 3.0 m/day).")
+            else:
+                st.error(f"⚠️ تحذير: {len(high_k_wells)} بئر تتجاوز الحد الأقصى للتوصيل الهيدروليكي.")
+                st.dataframe(high_k_wells[["البئر", "أقصى توصيل (m/day)"]], use_container_width=True)
+
+        with score_col2:
+            if high_pressure_wells.empty:
+                st.success("✅ مستويات الضغط الحقلي ضمن النطاق الآمن لجميع الآبار.")
+            else:
+                st.warning(f"⚠️ تنبيه: {len(high_pressure_wells)} بئر تظهر مستويات ضغط مرتفعة (أكثر من 400 kPa).")
+                st.dataframe(high_pressure_wells[["البئر", "متوسط الضغط (kPa)"]], use_container_width=True)
 
         # Native Excel (.xlsx) Batch Export Utility with Column Autofit & RTL
         excel_buffer = io.BytesIO()
