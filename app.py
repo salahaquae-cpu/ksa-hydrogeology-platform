@@ -32,13 +32,23 @@ st.set_page_config(
     layout="wide"
 )
 
-# Global RTL CSS Injection
+# Global RTL CSS Injection (excluding Plotly elements)
 st.markdown("""
     <style>
     .stApp { direction: rtl; text-align: right; }
     [data-testid="stSidebar"] { direction: rtl; text-align: right; }
     div[role="radiogroup"] { direction: rtl; text-align: right; }
-    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p { direction: rtl; text-align: right; }
+
+    /* Apply RTL to markdown and text, but strictly exclude Plotly elements */
+    .stMarkdown:not(:has(.js-plotly-plot)), .stText, h1, h2, h3, h4, h5, h6, p { 
+        direction: rtl; 
+        text-align: right; 
+    }
+
+    /* Force Plotly containers to render LTR so internal SVG text doesn't scramble */
+    .js-plotly-plot, .plotly {
+        direction: ltr !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
