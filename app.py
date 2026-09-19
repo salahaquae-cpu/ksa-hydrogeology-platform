@@ -3,7 +3,6 @@ import os
 import re
 import json
 import time
-import requests
 import pandas as pd
 import numpy as np
 import streamlit as st
@@ -195,6 +194,12 @@ def extract_and_validate_pdf(uploaded_file):
 
 
 # Sidebar Navigation
+# Display EuroMENA Solutions Logo
+logo_path = "EuroMENA Logo schwarz 00.jpg"
+if os.path.exists(logo_path):
+    st.sidebar.image(logo_path, use_container_width=True)
+    st.sidebar.markdown("---")
+
 st.sidebar.title("⚙️ إعدادات المنصة")
 mode = st.sidebar.radio(
     "اختر وضع العمل:",
@@ -374,18 +379,6 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
             st.metric("متوسط الضغط الحقلي", f"{filtered_df['متوسط الضغط (kPa)'].mean():.0f} kPa")
 
         st.markdown("---")
-
-        col1, col2 = st.columns(2)
-        with col1:
-            st.subheader("مقارنة معدلات التوصيل الهيدروليكي (m/day)")
-            st.bar_chart(filtered_df.set_index("البئر")["أقصى توصيل (m/day)"])
-        with col2:
-            st.subheader("توزيع ضغط النفاذية حسب الآبار (kPa)")
-            st.line_chart(filtered_df.set_index("البئر")["متوسط الضغط (kPa)"])
-
-        st.subheader("📋 جدول البيانات المجمعة للآبار المحددة")
-        st.dataframe(filtered_df, use_container_width=True)
-        st.markdown("---")
         st.subheader("🛡️ بطاقة الأداء للامتثال البيئي (NCEC / MEWA Scorecard)")
 
         # Define regulatory thresholds
@@ -411,6 +404,19 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
             else:
                 st.warning(f"⚠️ تنبيه: {len(high_pressure_wells)} بئر تظهر مستويات ضغط مرتفعة (أكثر من 400 kPa).")
                 st.dataframe(high_pressure_wells[["البئر", "متوسط الضغط (kPa)"]], use_container_width=True)
+
+        st.markdown("---")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.subheader("مقارنة معدلات التوصيل الهيدروليكي (m/day)")
+            st.bar_chart(filtered_df.set_index("البئر")["أقصى توصيل (m/day)"])
+        with col2:
+            st.subheader("توزيع ضغط النفاذية حسب الآبار (kPa)")
+            st.line_chart(filtered_df.set_index("البئر")["متوسط الضغط (kPa)"])
+
+        st.subheader("📋 جدول البيانات المجمعة للآبار المحددة")
+        st.dataframe(filtered_df, use_container_width=True)
 
         # Native Excel (.xlsx) Batch Export Utility with Column Autofit & RTL
         excel_buffer = io.BytesIO()
@@ -468,8 +474,8 @@ elif mode == "📈 لوحة المقارنة المتعددة (Dashboard)":
                 xaxis=dict(title="التوصيل الهيدروليكي (m/day)", side="top"),
                 plot_bgcolor="rgba(240, 246, 255, 1)",
                 title_x=0.5,
-                title_y=0.95,  # Pushes title to the very top
-                margin=dict(t=100),  # Adds 100px of empty space at the top so they don't collide
+                title_y=0.95,
+                margin=dict(t=100),
                 font=dict(family="Arial", size=14)
             )
 
